@@ -196,7 +196,7 @@ async function run() {
 
     app.get(
       "/products/bids/:productId",
-      verifyFireBaseToken,
+      // verifyFireBaseToken,
       async (req, res) => {
         const productId = req.params.productId;
         const query = { product: productId };
