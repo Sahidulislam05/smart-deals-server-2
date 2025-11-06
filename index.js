@@ -20,49 +20,60 @@ app.use(cors());
 app.use(express.json());
 
 const logger = (req, res, next) => {
-  console.log("Logging info");
+  // console.log("Logging info");
   next();
 };
 
+// const verifyFireBaseToken = async (req, res, next) => {
+//   // console.log("Middleware", req.headers.authorigation);
+//   if (!req.headers.authorigation) {
+//     return res.status(401).send({ massage: "Unauthorized access" });
+//   }
+//   const token = req.headers.authorigation.split(" ")[1];
+//   if (!token) {
+//     return res.status(401).send({ massage: "Unauthorized access" });
+//   }
+//   try {
+//     const userInfo = await admin.auth().verifyIdToken(token);
+//     req.tokenEmail = userInfo.email;
+//     next();
+//   } catch {
+//     return res.status(401).send({ massage: "Unauthorized access" });
+//   }
+// };
+
 const verifyFireBaseToken = async (req, res, next) => {
-  // console.log("Middleware", req.headers.authorigation);
-  if (!req.headers.authorigation) {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
     return res.status(401).send({ massage: "Unauthorized access" });
   }
-  const token = req.headers.authorigation.split(" ")[1];
-  if (!token) {
-    return res.status(401).send({ massage: "Unauthorized access" });
-  }
+  const token = authorization.split(" ")[1];
   try {
-    const userInfo = await admin.auth().verifyIdToken(token);
-    req.tokenEmail = userInfo.email;
+    const decoded = await admin.auth().verifyIdToken(token);
+    req.tokenEmail = decoded.email;
     next();
   } catch {
     return res.status(401).send({ massage: "Unauthorized access" });
   }
 };
 
-const verifyJWTToken = (req, res, next) => {
-  console.log("IN Middleware", req.headers);
-  if (!req.headers.authorigation) {
-    return res.status(401).send({ massage: "Unauthorized access" });
-  }
-  const token = req.headers.authorigation.split(" ")[1];
-  if (!token) {
-    return res.status(401).send({ massage: "Unauthorized access" });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(401).send({ massage: "Unauthorized access" });
-    }
-    req.tokenEmail = decoded.email;
-
-    // Put in the right place
-
-    next();
-  });
-};
+// const verifyJWTToken = (req, res, next) => {
+//   const authorization = req.headers.authorization;
+//   if (!authorization) {
+//     return res.status(401).send({ message: "Unauthorized access" });
+//   }
+//   const token = authorization.split(" ")[1];
+//   if (!token) {
+//     return res.status(401).send({ message: "Unauthorized access" });
+//   }
+//   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+//     if (err) {
+//       return res.status(401).send({ message: "Unauthorized access" });
+//     }
+//     req.tokenEmail = decoded.email;
+//     next();
+//   });
+// };
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@sahidul-islam.zbcwnr8.mongodb.net/?appName=Sahidul-Islam`;
 
@@ -136,7 +147,7 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/products", async (req, res) => {
+    app.post("/products", verifyFireBaseToken, async (req, res) => {
       const newProduct = req.body;
       const result = await productCollection.insertOne(newProduct);
       res.send(result);
@@ -165,7 +176,7 @@ async function run() {
 
     // bids related apis with firebase token verify
 
-    app.get("/bids", verifyJWTToken, async (req, res) => {
+    app.get("/bids", verifyFireBaseToken, async (req, res) => {
       const email = req.query.email;
       const query = {};
       if (email) {
